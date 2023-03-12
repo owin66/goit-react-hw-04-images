@@ -1,48 +1,37 @@
-import React, { Component } from 'react';
+import React, { useEffect } from 'react';
 import styles from '../styles.module.css';
 import PropTypes from 'prop-types';
 
-class Modal extends Component {
-  componentDidMount() {
-    window.addEventListener('keydown', this.handleKeyDown);
-  }
-
-  componentDidUpdate(prevProps) {
-    if (!prevProps.show && this.props.show) {
-      window.addEventListener('keydown', this.handleKeyDown);
+function Modal({ onClose, children, show }) {
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.code === 'Escape') {
+        onClose();
+      }
     }
 
-    if (prevProps.show && !this.props.show) {
-      window.removeEventListener('keydown', this.handleKeyDown);
+    if (show) {
+      window.addEventListener('keydown', handleKeyDown);
     }
-  }
 
-  componentWillUnmount() {
-    window.removeEventListener('keydown', this.handleKeyDown);
-  }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose, show]);
 
-  handleKeyDown = e => {
-    if (e.code === 'Escape') {
-      this.props.onClose();
-    }
-  };
-
-  render() {
-    const { onClose, children, show } = this.props;
-    return (
-      <div
-        className={show ? styles.modalBackdrop : styles.hidden}
-        onClick={onClose}
-      >
-        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-          <button className={styles.modalCloseBtn} onClick={onClose}>
-            ×
-          </button>
-          {children}
-        </div>
+  return (
+    <div
+      className={show ? styles.modalBackdrop : styles.hidden}
+      onClick={onClose}
+    >
+      <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+        <button className={styles.modalCloseBtn} onClick={onClose}>
+          ×
+        </button>
+        {children}
       </div>
-    );
-  }
+    </div>
+  );
 }
 
 Modal.propTypes = {

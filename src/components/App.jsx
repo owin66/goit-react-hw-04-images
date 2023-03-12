@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,108 +9,95 @@ import Button from './Button/Button';
 import Modal from './Modal/Modal';
 import { queryPixabayAPI } from './services/pixabayApi';
 
-export class App extends Component {
-  static propTypes = {
-    images: PropTypes.arrayOf(
-      PropTypes.shape({
-        id: PropTypes.number.isRequired,
-        webformatURL: PropTypes.string.isRequired,
-        tags: PropTypes.string.isRequired,
-        largeImageURL: PropTypes.string.isRequired,
-      })
-    ),
-  };
+export const App = () => {
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  const [total, setTotal] = useState('');
 
-  state = {
-    query: '',
-    images: [],
-    page: 1,
-    searchQuery: '',
-    isLoading: false,
-    error: null,
-    showModal: false,
-    largeImageURL: '',
-    total: '',
-  };
+  useEffect(() => {
+    const fetchImages = async () => {
+      try {
+        setIsLoading(true);
+        const result = await queryPixabayAPI(query, page);
 
-  componentDidUpdate(_, prevState) {
-    const { query, page } = this.state;
+        if (result.hits.length === 0) {
+          toast.error('No images found');
+        }
 
-    if (prevState.page !== page || prevState.query !== query) {
-      this.fetchImages(query, page);
-    }
-  }
+        if (page === 1 && result.hits.length !== 0) {
+          toast.success(`${result.total} images found`);
+        }
 
-  onChangeQuery = inputValue => {
-    this.setState({
-      query: inputValue,
-      page: 1,
-      images: [],
-      error: null,
-    });
-  };
-
-  fetchImages = async (query, page) => {
-    try {
-      this.setState({ isLoading: true });
-      const result = await queryPixabayAPI(query, page);
-
-      if (result.hits.length === 0) {
-        toast.error('No images found');
+        setImages(prev => [...prev, ...result.hits]);
+        setTotal(result.total);
+      } catch (error) {
+        setError(true);
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      if (this.state.page === 1 && result.hits.length !== 0) {
-        toast.success(`${result.total} images found`);
-      }
-
-      this.setState(prev => {
-        return {
-          images: [...prev.images, ...result.hits],
-          total: result.total,
-        };
-      });
-    } catch (error) {
-      this.setState({ error: true });
-    } finally {
-      this.setState({ isLoading: false });
+    if (page !== 1 || searchQuery !== query) {
+      fetchImages();
     }
+  }, [query, page, searchQuery]);
+
+  const handleLoadMore = () => {
+    setPage(prevPage => prevPage + 1);
   };
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+  const toggleModal = () => {
+    setShowModal(prevShowModal => !prevShowModal);
   };
 
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-    }));
+  const openModal = url => {
+    toggleModal();
+    setLargeImageURL(url);
   };
 
-  openModal = largeImageURL => {
-    this.toggleModal();
-    console.log(largeImageURL);
-    this.setState({ largeImageURL });
+  const onChangeQuery = inputValue => {
+    setQuery(inputValue);
+    setPage(1);
+    setImages([]);
+    setError(null);
+    setSearchQuery(query);
   };
 
-  render() {
-    const { images, isLoading, error, showModal, largeImageURL, total } =
-      this.state;
-    const shouldRenderLoadMoreButton =
-      images.length > 0 && !isLoading && total > images.length;
-    return (
-      <div>
-        <Searchbar onSubmit={this.onChangeQuery} />
-        <ImageGallery images={images} onClick={this.openModal} />
-        {isLoading && <Loader />}
-        {shouldRenderLoadMoreButton && <Button onClick={this.handleLoadMore} />}
-        {error && <p>Whoops, something went wrong: {error.message}</p>}
-        {showModal && (
-          <Modal show={showModal} onClose={this.toggleModal}>
-            <img src={largeImageURL} alt="" width="100%" height="100%" />
-          </Modal>
-        )}
-        <ToastContainer />
-      </div>
-    );
-  }
-}
+  const shouldRenderLoadMoreButton =
+    images.length > 0 && !isLoading && total > images.length;
+
+  return (
+    <div>
+      <Searchbar onSubmit={onChangeQuery} />
+      <ImageGallery images={images} onClick={openModal} />
+      {isLoading && <Loader />}
+      {shouldRenderLoadMoreButton && <Button onClick={handleLoadMore} />}
+      {error && <p>Whoops, something went wrong: {error.message}</p>}
+      {showModal && (
+        <Modal show={showModal} onClose={toggleModal}>
+          <img src={largeImageURL} alt="" width="100%" height="100%" />
+        </Modal>
+      )}
+      <ToastContainer />
+    </div>
+  );
+};
+
+App.propTypes = {
+  images: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      webformatURL: PropTypes.string.isRequired,
+      tags: PropTypes.string.isRequired,
+      largeImageURL: PropTypes.string.isRequired,
+    })
+  ),
+};
+
+export default App;
