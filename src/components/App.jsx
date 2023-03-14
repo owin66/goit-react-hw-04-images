@@ -13,7 +13,6 @@ export const App = () => {
   const [query, setQuery] = useState('');
   const [images, setImages] = useState([]);
   const [page, setPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -43,10 +42,10 @@ export const App = () => {
       }
     };
 
-    if (page !== 1 || searchQuery !== query) {
+    if (page !== 1 || query !== '') {
       fetchImages();
     }
-  }, [query, page, searchQuery]);
+  }, [query, page]);
 
   const handleLoadMore = () => {
     setPage(prevPage => prevPage + 1);
@@ -66,7 +65,6 @@ export const App = () => {
     setPage(1);
     setImages([]);
     setError(null);
-    setSearchQuery(query);
   };
 
   const shouldRenderLoadMoreButton =

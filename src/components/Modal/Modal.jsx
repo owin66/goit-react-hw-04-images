@@ -10,14 +10,10 @@ function Modal({ onClose, children, show }) {
       }
     }
 
-    if (show) {
-      window.addEventListener('keydown', handleKeyDown);
-    }
-
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose, show]);
+  }, [onClose]);
 
   return (
     <div
